@@ -1,9 +1,9 @@
 # app.py
 """
-Sleek Gradio UI for the personal chatbot (PROFILE-based).
-- Soft theme, glassy cards, quick-question chips
-- Responsive layout (sidebar on desktop, stacked on mobile)
-- Copy-to-clipboard on messages, clear chat, and starter tips
+Compact Gradio UI for the personal chatbot (PROFILE-based).
+- Chat column first (mobile: chat shows before sidebar)
+- Sticky input row
+- Reduced paddings for tight iframes
 """
 
 import os
@@ -140,7 +140,7 @@ def route_and_answer(user_text: str) -> str:
     renderer = RENDERERS.get(key, RENDERERS["help"])
     return renderer(PROFILE)
 
-# --- Theme & CSS ---
+# --- Theme & CSS (compact) ---
 theme = gr.themes.Soft(
     primary_hue="indigo",
     secondary_hue="violet",
@@ -148,67 +148,97 @@ theme = gr.themes.Soft(
 )
 
 custom_css = """
-/* Center the app and set max width */
-.gradio-container { max-width: 1100px !important; margin: 0 auto !important; }
+/* Tighten global paddings for iframes */
+.gradio-container { max-width: 1050px !important; margin: 0 auto !important; padding-top: 6px !important; }
 
-/* Header card */
+/* Header: slimmer */
 .header-card {
-  background: linear-gradient(135deg, rgba(99,102,241,.20), rgba(14,165,233,.10));
-  border: 1px solid rgba(255,255,255,.12);
-  backdrop-filter: blur(10px);
-  border-radius: 18px;
-  padding: 18px 18px;
+  background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(14,165,233,.10));
+  border: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  padding: 10px 12px;
 }
 
 /* Glass cards */
 .glass {
   background: rgba(255,255,255,0.06) !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
-  backdrop-filter: blur(12px) !important;
-  border-radius: 18px !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 14px !important;
 }
 
-/* Chatbot bubble tweaks */
-.message.bot { background: rgba(99,102,241,.12) !important; border: 1px solid rgba(99,102,241,.25) !important; }
-.message.user { background: rgba(255,255,255,.06) !important; border: 1px solid rgba(255,255,255,.15) !important; }
+/* Chat heights */
+#chat-card { padding-bottom: 6px; }
+#chatbox { height: 430px !important; }
 
-/* Buttons: chips */
+/* Sticky input row */
+.input-row {
+  position: sticky; bottom: 0;
+  background: rgba(18,25,54,.92);
+  backdrop-filter: blur(6px);
+  padding-top: 6px; margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-radius: 0 0 14px 14px;
+}
+
+/* Chips */
 .quick-chip button {
   background: rgba(255,255,255,.08) !important;
   border: 1px solid rgba(255,255,255,.16) !important;
   border-radius: 999px !important;
-  padding: 8px 14px !important;
+  padding: 6px 12px !important;
 }
 .quick-chip button:hover { transform: translateY(-1px); }
 
-/* Footer */
-.footer {
-  opacity: .75; font-size: .9rem; text-align: center; padding: 6px 0;
+/* Order: on small screens, chat first */
+@media (max-width: 820px) {
+  .main { order: 1; }
+  .sidebar { order: 2; }
+  #chatbox { height: 360px !important; }
 }
+
+/* Footer */
+.footer { opacity: .75; font-size: .85rem; text-align: center; padding: 4px 0 6px; }
 """
 
 # ---- UI ----
 with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom_css) as demo:
-    # Header
+    # Header (slim)
     with gr.Row(elem_classes=["header-card"]):
         gr.HTML(
             """
-            <div style="display:flex;align-items:center;gap:14px;">
-              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#22d3ee);display:flex;align-items:center;justify-content:center;font-size:22px;">🤖</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#22d3ee);display:flex;align-items:center;justify-content:center;font-size:20px;">🤖</div>
               <div style="display:flex;flex-direction:column;">
-                <div style="font-weight:700;font-size:1.2rem;letter-spacing=.2px">Faruk Hasan — Personal Chatbot</div>
-                <div style="color:#a5b4fc;font-size:.95rem;">Ask about education, tools, work, tutoring, or personal life.</div>
-              </div>
-              <div style="margin-left:auto;">
-                <span style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);padding:6px 10px;border-radius:999px;color:#86efac;font-size:.85rem;">Online</span>
+                <div style="font-weight:700;font-size:1.05rem;letter-spacing:.2px">Faruk Hasan — Personal Chatbot</div>
+                <div style="color:#a5b4fc;font-size:.9rem;">Ask about education, tools, work, tutoring, or personal life.</div>
               </div>
             </div>
             """
         )
 
     with gr.Row():
-        # Sidebar (Quick Questions)
-        with gr.Column(scale=4, min_width=260):
+        # MAIN CHAT FIRST (so on mobile it's on top)
+        with gr.Column(scale=8, min_width=520, elem_classes=["main"]):
+            with gr.Group(elem_id="chat-card", elem_classes=["glass"]):
+                chat = gr.Chatbot(
+                    label=None,
+                    height=430,
+                    elem_id="chatbox",
+                    show_copy_button=True,
+                )
+                with gr.Row(elem_classes=["input-row"]):
+                    msg = gr.Textbox(
+                        placeholder="Ask me something… (e.g., education, tools, where are you from)",
+                        scale=8,
+                        autofocus=True,
+                    )
+                    send = gr.Button("Send", variant="primary", scale=1)
+                    clear = gr.Button("Clear", variant="secondary", scale=1)
+
+        # SIDEBAR SECOND
+        with gr.Column(scale=4, min_width=260, elem_classes=["sidebar"]):
             with gr.Group(elem_classes=["glass"]):
                 gr.Markdown("#### 🔎 Quick Questions")
                 chips = [
@@ -225,27 +255,10 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
             with gr.Group(elem_classes=["glass"]):
                 gr.Markdown("#### 💡 Tips")
                 gr.Markdown(
-                    "- Try short prompts like **“full name”**, **“degree”**, **“kids”**.\n"
-                    "- Answers are drawn from my structured profile for accuracy.\n"
-                    "- Use the **Clear** button to start over."
+                    "- Short prompts like **“full name”**, **“degree”**, **“kids”** work great.\n"
+                    "- Answers come from a structured profile (always consistent).\n"
+                    "- **Clear** resets the chat."
                 )
-
-        # Main chat area
-        with gr.Column(scale=8, min_width=520):
-            with gr.Group(elem_classes=["glass"]):
-                chat = gr.Chatbot(
-                    label="Chat",
-                    height=520,
-                    show_copy_button=True,
-                )
-                with gr.Row():
-                    msg = gr.Textbox(
-                        placeholder="Ask me something… (e.g., education, tools, where are you from)",
-                        scale=8,
-                        autofocus=True,
-                    )
-                    send = gr.Button("Send", variant="primary", scale=1)
-                    clear = gr.Button("Clear", variant="secondary", scale=1)
 
     gr.HTML('<div class="footer">© 2025 Faruk Hasan — Personal Chatbot</div>')
 
@@ -256,7 +269,6 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
         history.append((message, reply))
         return "", history
 
-    # Buttons push canned prompts into the box then auto-send
     def inject_and_send(prompt, history):
         reply = route_and_answer(prompt)
         history = history or []
