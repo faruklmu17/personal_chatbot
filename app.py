@@ -200,25 +200,54 @@ custom_css = """
 
 /* Footer */
 .footer { opacity: .75; font-size: .85rem; text-align: center; padding: 4px 0 6px; }
+
+/* Minimize button */
+#minimize-btn {
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 8px !important;
+  padding: 4px 8px !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  transition: all 0.2s ease !important;
+}
+#minimize-btn:hover {
+  background: rgba(255,255,255,.15) !important;
+  transform: translateY(-1px);
+}
+
+/* Minimized state */
+.chatbot-minimized .main {
+  display: none !important;
+}
+.chatbot-minimized .sidebar {
+  display: none !important;
+}
+.chatbot-minimized .header-card {
+  margin-bottom: 0 !important;
+}
 """
 
 # ---- UI ----
 with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom_css) as demo:
     # Header (slim)
     with gr.Row(elem_classes=["header-card"]):
-        gr.HTML(
-            """
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#22d3ee);display:flex;align-items:center;justify-content:center;font-size:20px;">🤖</div>
-              <div style="display:flex;flex-direction:column;">
-                <div style="font-weight:700;font-size:1.05rem;letter-spacing:.2px">Faruk Hasan — Personal Chatbot</div>
-                <div style="color:#a5b4fc;font-size:.9rem;">Ask about education, tools, work, tutoring, or personal life.</div>
-              </div>
-            </div>
-            """
-        )
+        with gr.Column(scale=10):
+            gr.HTML(
+                """
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#22d3ee);display:flex;align-items:center;justify-content:center;font-size:20px;">🤖</div>
+                  <div style="display:flex;flex-direction:column;">
+                    <div style="font-weight:700;font-size:1.05rem;letter-spacing:.2px">Faruk Hasan — Personal Chatbot</div>
+                    <div style="color:#a5b4fc;font-size:.9rem;">Ask about education, tools, work, tutoring, or personal life.</div>
+                  </div>
+                </div>
+                """
+            )
+        with gr.Column(scale=1, min_width=50):
+            minimize_btn = gr.Button("−", elem_id="minimize-btn", size="sm", variant="secondary")
 
-    with gr.Row():
+    with gr.Row(elem_id="main-content"):
         # MAIN CHAT FIRST (so on mobile it's on top)
         with gr.Column(scale=8, min_width=520, elem_classes=["main"]):
             with gr.Group(elem_id="chat-card", elem_classes=["glass"]):
@@ -256,6 +285,43 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
 
     gr.HTML('<div class="footer">© 2025 Faruk Hasan — Personal Chatbot</div>')
 
+    # JavaScript for minimize functionality
+    gr.HTML("""
+    <script>
+    function setupMinimizeButton() {
+        const minimizeBtn = document.getElementById('minimize-btn');
+        const mainContent = document.getElementById('main-content');
+        const gradioContainer = document.querySelector('.gradio-container');
+
+        if (minimizeBtn && mainContent) {
+            let isMinimized = false;
+
+            minimizeBtn.addEventListener('click', function() {
+                if (isMinimized) {
+                    // Maximize
+                    mainContent.style.display = 'flex';
+                    minimizeBtn.textContent = '−';
+                    gradioContainer.classList.remove('chatbot-minimized');
+                    isMinimized = false;
+                } else {
+                    // Minimize
+                    mainContent.style.display = 'none';
+                    minimizeBtn.textContent = '+';
+                    gradioContainer.classList.add('chatbot-minimized');
+                    isMinimized = true;
+                }
+            });
+        }
+    }
+
+    // Setup when page loads
+    document.addEventListener('DOMContentLoaded', setupMinimizeButton);
+
+    // Also setup after a short delay in case elements load later
+    setTimeout(setupMinimizeButton, 1000);
+    </script>
+    """)
+
     # --- Logic bindings ---
     def respond(message, history):
         reply = route_and_answer(message)
@@ -274,6 +340,9 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
     msg.submit(respond, [msg, chat], [msg, chat])
     send.click(respond, [msg, chat], [msg, chat])
     clear.click(lambda: ([],), outputs=[chat])
+
+    # Minimize button handler (functionality handled by JavaScript)
+    minimize_btn.click(lambda: None)
 
     chips[0].click(lambda h: inject_and_send("full name", h), inputs=[chat], outputs=[chat])
     chips[1].click(lambda h: inject_and_send("where are you from", h), inputs=[chat], outputs=[chat])
