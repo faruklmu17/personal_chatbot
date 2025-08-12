@@ -227,6 +227,7 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
                     height=430,
                     elem_id="chatbox",
                     show_copy_button=True,
+                    type="messages",
                 )
                 with gr.Row(elem_classes=["input-row"]):
                     msg = gr.Textbox(
@@ -252,13 +253,6 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
                     gr.Button("Childhood", size="sm", elem_classes=["quick-chip"]),
                     gr.Button("Personal life", size="sm", elem_classes=["quick-chip"]),
                 ]
-            with gr.Group(elem_classes=["glass"]):
-                gr.Markdown("#### 💡 Tips")
-                gr.Markdown(
-                    "- Short prompts like **“full name”**, **“degree”**, **“kids”** work great.\n"
-                    "- Answers come from a structured profile (always consistent).\n"
-                    "- **Clear** resets the chat."
-                )
 
     gr.HTML('<div class="footer">© 2025 Faruk Hasan — Personal Chatbot</div>')
 
@@ -266,13 +260,15 @@ with gr.Blocks(title="Faruk Hasan – Personal Chatbot", theme=theme, css=custom
     def respond(message, history):
         reply = route_and_answer(message)
         history = history or []
-        history.append((message, reply))
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": reply})
         return "", history
 
     def inject_and_send(prompt, history):
         reply = route_and_answer(prompt)
         history = history or []
-        history.append((prompt, reply))
+        history.append({"role": "user", "content": prompt})
+        history.append({"role": "assistant", "content": reply})
         return history
 
     msg.submit(respond, [msg, chat], [msg, chat])
